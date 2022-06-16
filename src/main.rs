@@ -510,8 +510,242 @@ fn ownership(){
                 // 整数是已知且固定大小的简单的值， 这俩个5被压到了 Stack 中
             
             // 变量和数据交互的方式：移动（move） String 版本
-            
+                let s1 = String::from("hello");
+                // 一个String 由3部分组成：
+                    // 一个指向存放字符串内容的内存的指针  ptr
+                    // 一个长度   len
+                    // 一个容量   capacity
+                        //      s1 (stack)                                   栈内存(heap)
+                        // name  value                                  index    value
+                        // ptr      存放内容的内存指针  ----------->         0        h
+                        // len      5                                      1        e
+                        // capacity 5                                      2        l
+                        //                                                 3        l
+                        //                                                 4        o
+                    // 长度 len，就是存放字符串内容所需的字节数
+                    // 容量 capacity 是指 String 从操作系统总共获取内存的总字节数
+
+                // 当把 s1 赋值给 s2，String 的数据被复制了一份：
+                let s2 = s1;
+                    // 在Stack 上复制了一份指针、长度、容量
+                    // 并没有复制指针所指向的 heap 上的数据
+                        //      s1 (stack)                                   
+                        // name  value                                  
+                        // ptr      存放内容的内存(Heap)指针  ----------->         
+                        // len      5                                      
+                        // capacity 5                                         栈内存(heap)
+                        //                                                  index    value  
+                                                                            // 0        h
+                                                                            // 1        e
+                                                                            // 2        l
+                        //      s2 (stack)                                    3        l
+                        // name  value                                         4        o
+                        // ptr      存放内容的内存(Heap)指针  ----------->     
+                        // len      5                                     
+                        // capacity 5     
+                //  当变量离开作用域时，Rust 会自动调用 Drop 函数，并将变量使用的 Heap 内存释放
+                // 当 S1 、 S2 离开作用域时，它们都会尝试 释放相同的内存
+                    // 二次释放 （double free） Bug
+                
+                // 为了保护内存的安全：
+                    // Rust 没有尝试复制被分配的内存
+                    // Rust 让 S1 失效。
+                        // 当 S1 离开作用域的时候，Rust 不需要释放任何东西
+                    
+                    // 试试看当 s2 创建后，再使用 s1 (例子)
+
+                        let s1 = String::from("hello");
+                        let s2 = s1; // s1 失效
+
+                        // borrow of moved value: `s1`
+                        // value borrowed here after move
+                        // 发生了移动， s1 移动给了 s2
+                        // println!("s1, {}", s1);
+                
+                // 浅拷贝 （shallow copy ）
+                // 深拷贝 （deep copy）
+                // 你也许会将复制指针，长度，容量视为浅拷贝，但由于 Rust 让 s1 失效了，所以我们用一个新的术语 ：移动（move）
+                    //     s1 (stack)  (失效)                                 
+                    // name  value                                  
+                    // ptr      存放内容的内存(Heap)指针  ----------->         
+                    // len      5                                      
+                    // capacity 5                                         栈内存(heap)
+                    //                                                  index    value  
+                                                                        // 0        h
+                                                                        // 1        e
+                                                                        // 2        l
+                    //      s2 (stack)  (有效)                             3        l
+                    // name  value                                         4        o
+                    // ptr      存放内容的内存(Heap)指针  ----------->     
+                    // len      5                                     
+                    // capacity 5  
+                // 隐含的一个设计原则： Rust 不会自动创建数据的深拷贝
+                    // 就运行时性能而言，任何自动赋值的操作都是廉价的
+
+            // 变量和数据交互的方式：克隆 clone()
+                // 如果真想对 heap 上面的String 数据进行深度拷贝，而不仅仅是Stack上的数据，可以使用clone方法
+                    let s1 = String::from("hello");
+                    let s2 = s1.clone();
+
+                    println!("s1 {}, s2 {}", s1 , s2);
+                    //      s1 (stack)                                   栈内存(heap)
+                    // name  value                                  index    value
+                    // ptr      存放内容的内存指针  ----------->         0        h
+                    // len      5                                      1        e
+                    // capacity 5                                      2        l
+                    //                                                 3        l
+                    //                                                 4        o
+
+                    //      s2 (stack)                                   栈内存(heap)
+                    // name  value                                  index    value
+                    // ptr      存放内容的内存指针  ----------->         0        h
+                    // len      5                                      1        e
+                    // capacity 5                                      2        l
+                    //                                                 3        l
+                    //                                                 4        o
+
+            // Stack 上的数据 复制
+                let x = 5;
+                let y = x;
+
+                println!("{}, {}", x, y);
+
+                // Copy trait, 可以用于像整数这样完全存放在 Stack 上面的类型
+                // 如果一个类型实现了 Copy 这个 Trait， 那么旧的变量赋值后仍然可用
+
+                // 如果一个类型或者该类型的一部分实现了 Drop trait ，那么 Rust 不允许让它再去实现 Copy trait 了
+
+            // 一些拥有 Copy trait 的类型
+                // 任何简单标量的组合类型 都可以是Copy的
+                // 任何需要分配内存或某种资源都不是 Copy 的
+                // 一些拥有Copy trait 的类型
+                    // 所有的整数类型,例如 u32
+                    // bool
+                    // char
+                    // 所有的浮点类型, 例如 f64
+                    // Tuple (元组)， 如果其所有的字段都是 Copy 的
+                        // {i32, i32} 是
+                        // {i32, String} 不是
+        // 所有权 与 函数
+            // 在语义上，将值传递给函数和把值赋给变量是类似的：
+                // 将值传递给函数，将发生移动或复制。
+                    let s = String::from("hello world");
+
+                    take_ownership(s);  // s 的值 移动到函数里面， 
+
+                    // borrow of moved value: `s`
+                    // value borrowed here after move
+                    // 从这以后 s 不再有效
+                    // println!("s after {}", s);
+
+                    let x = 5;
+
+                    makes_copy(x);
+
+                    println!("x {}", x); // x 5
+
+                    fn take_ownership(some_string : String){
+                        println!("take_ownership some_string {}", some_string); // take_ownership some_string hello world
+                    } // drop some_string
+
+                    fn makes_copy (some_number: i32){
+                        println!("makes_copy some_number {}", some_number); // makes_copy some_number 5
+                    } // stack 不会发生什么事情
+                
+            // 返回值 与 作用域
+                // 函数在返回值的过程中 同样也会发生所有权的转移
+                    let s1 = gives_ownership();
+
+                    let s2 = String::from("hello");
+
+                    let s3 = takes_and_gives_back(s2); // 把 s2 移动到函数里面
+
+                    // s2 已经移动给函数了， 最后只需要drop s1 和 s3
+
+                    fn gives_ownership() -> String {
+                        let some_string = String::from("hello");
+                        some_string
+                    } // 返回值 所有权 移动 ： 把 some_string 移动给 s1 
+
+                    fn takes_and_gives_back(a_string: String) -> String{
+                        a_string
+                    } // a_string 作为返回值，移动到 调用函数的变量 - 移动到 s3
+                // 一个变量的所有权总是遵循同样的模式：
+                    // 把一个值赋给其它变量时 就会发生移动.
+                    // 当一个包含 heap 数据的变量离开作用域时, 它的值就会被drop函数清理, 除非数据的所有权移动至另一个变量上了.
+                
+            // 如何让函数使用某个值， 但不获取所有权？
+                // 这种方法 太笨了
+                    let s1 = String::from("hello");
+                    
+                    let (s2 , len) = calculate_length(s1);
+
+                    println!("s2 {}, s2 len {}", s2, len); // s2 hello, s2 len 5
+                    
+                    fn calculate_length(s: String) -> (String , usize) {
+                        let len = s.len();
+
+                        (s, len)
+                    } // s 的所有权 返回， 就交给了 s2 接受变量
+                // Rust 有一个特性 叫做 “引用 （reference）”
 }       
+
+fn reference() {
+    // 引用 和 借用
+        let s1 = String::from("hello");
+
+        // 把s1的引用，传递给这个函数  & 标识传递的是引用
+        // &s1 它并没有 s1 当它走出作用域时，他指向的值s1 并不会被清理
+        let len = calculate_length(&s1);
+
+        println!("s1, {}, len , {}",s1 , len); // len , 5
+
+        // 参数 接受一个 &String 类型的引用               以引用作为参数的行为，我们叫做借用。
+        fn calculate_length(s : &String) -> usize {
+            s.len()
+            // 引用 我们并没有获得所有权， 所以不用考虑 把这个值返回回去
+        }
+        // 参数的类型是 &String 而不是 String
+
+        // &符号就标识引用：允许你引用某些值而不取得所有权
+
+            // s 是 s1的引用，实际上 s 是一个指针 指向了 s1 也是一个指针 指向了 heap 上面的内容
+            //      s (引用)                s1 (stack)                                   栈内存(heap)
+            //   name  value              name  value                                  index    value
+            //    ptr     ------>>        ptr      存放内容的内存指针  ----------->         0        h
+            //                            len      5                                      1        e
+            //                            capacity 5                                      2        l
+            //                                                                            3        l
+            //                                                                            4        o
+
+    // 借用
+        // 我们把引用作为函数参数这个行为 叫做借用
+        // 是否可以修改借用的东西？ --- 不可以  
+            fn calculate_length_2(s : &String) -> usize {
+                // cannot borrow `*s` as mutable, as it is behind a `&` reference
+                // 不可以把借用的变量 作为可变的
+                // s.push_str("world");
+                s.len()
+                // 引用 我们并没有获得所有权， 所以不用考虑 把这个值返回回去
+            }
+        // 和变量一样，引用默认也是不可变的
+    
+    // 可变引用
+
+        let mut s1 = String::from("hello"); // 可变得属性
+        let len = calculate_length_3(&mut s1); // 引用可变的参数
+
+        println!("s1, {}, len , {}",s1 , len); // len , 5
+
+        // 函数接受参数，&mut String类型可变的引用
+        fn calculate_length_3(s : &mut String) -> usize {
+            s.push_str("world");
+            s.len()
+        }
+
+        // 可变引用有一个特殊的限制：在特定作用域内，对某一块数据，只能有一个可变的引用。
+
+}
 
 fn main() {
     
@@ -520,7 +754,9 @@ fn main() {
     // function(); // 12 函数
     // control(); // 13 14 控制流
 
-    ownership(); // 15 16 17 所有权
+    // ownership(); // 15 16 17 所有权
+
+    reference(); // 18 引用
     
     // println!("Hello, world!");
 }
