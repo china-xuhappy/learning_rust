@@ -746,9 +746,13 @@ fn reference() {
         // 可变引用有一个特殊的限制：在特定作用域内，对某一块数据，只能有一个可变的引用。
             // 这样做的好处，就是在编译的时候防止数据竞争
         let mut s = String::from("hello");
-        // 如果把s变成 可变引用，可变引用的个数 不能超过1个
+        
         let s1 = &mut s;
-        let s2 = &mut s; // 报错
+
+        // cannot borrow `s` as mutable more than once at a time
+        // 如果把s变成 可变引用，可变引用的个数 不能超过1个
+        // let s2 = &mut s; // 报错
+        // println!("s1 {}, s2 {}", s1, s2);
 
         // 以下有三种行为会发生数据竞争
             // 两个或者多个指针同时访问同一个数据
@@ -765,24 +769,570 @@ fn reference() {
         // 另外一个限制
             // 不可以同时拥有一个可变引用和一个不可变引用
             let mut s = String::from("hello");
-            let s1 = &s;
-            let s2 = &s;
-            let s3 = &mut s; // 报错 -- 不可以有不可变 和 可变的引用
+            let r1 = &s;
+            let r2 = &s;
+
+            // cannot borrow `s` as mutable because it is also borrowed as immutable
+            // 不可以把s 变为可变的引用， 因为他已经是不可变的引用
+            // let s1 = &mut s; // 报错 -- 不可以有不可变 和 可变的引用
+            // println!("s1, {}, r1, {}, r2 {}", s1, r1, r2);
+
             // 多个不可变的引用是可以的
-            let s1 = &s;
-            let s2 = &s;
+            let r1 = &s;
+            let r2 = &s;
+        
+        // 悬空引用 Dangling References
+            // 悬空指针（Dangling Pointer）：一个指针引用了内存中的某个地址，而这块内存可能已经被释放并分配给其它人使用了。
+
+            // 在 Rust 里，编译器可保证引用永远都不是悬空引用：
+                // 如果你引用了某些数据，编译器将保证在引用离开作用域之前数据不会离开作用域
+
+                // missing lifetime specifier
+                // fn fangle() -> &String {
+                //     let s = String::from("hello");
+                //     &s
+                // } // s 这个值离开作用域 将被销毁
+                // 返回引用 报错，已经释放的内存地址，因为Stack 和 Heap 中的数据都已经被销毁了
+        
+        // 引用的规则
+            // 在任何给定的时刻，只能满足以下条件之一
+                // 一个可变的引用
+                // 任意数量不可变的引用
+            // 引用必须一直有效
+
+            
 }
 
-fn main() {
+fn slice() {
+    // 切片
+        // Rust 的另一种不持有所有权的数据类型：切片（slice）
+        // 一道题，编写一个函数：
+            // 它接受字符串作为参数
+            // 返回它在这个字符串里找到的第一个单词
+            // 如果函数没找到任何空格，那么整个字符串就被返回。
+        
+            let mut s = String::from("hello");
+
+            // 如果这个索引位置， 脱离了字符串的上下文 那就毫无意义
+            // 在函数反复以后 就无法保证 s 字符串的有效性 （不变动）
+            let worldIndex = first_world(&s); // 5 
+        
+            s.clear(); // 可以清空, 那么索引（worldIndex）位置 还是5 ， 就毫无意义
+            // 解决这个问题 使用 字符串切片
+            println!("worldIndex, {}", worldIndex);
+            
+            fn first_world(s: &String) -> usize{
+                let bytes = s.as_bytes();
+
+                for (index, &item) in bytes.iter().enumerate() {
+                    if item == b' ' {
+                        return index;
+                    }
+                }
+                s.len()
+            }
+        // 字符串切片
+            // 字符串切片是指向字符串中一部分内容的引用
+                let s = String::from("hello world");
+
+                // &s 对s 的引用， [0..5] 引用字符串中的一部分
+                let hello = &s[0..5];
+                let world = &s[6..11];
+
+                println!("{}, {}", hello, world); // hello, world
+            
+            // 形式：&对变量的引用，[开始索引..结束索引]
+
+                // 开始索引就是切片起始位置的索引值
+                // 结束索引是切片终止位置的下一个索引值
+                    //      s (stack)                                   栈内存(heap)
+                    // name  value                                  index    value
+                    // ptr      存放内容的内存指针  ----------->         0        h
+                    // len      11                                     1        e
+                    // capacity 11                                     2        l
+                    //                                                 3        l
+                    //                                                 4        o
+                                                                    // 5        
+                    //      world [6..11]                                   
+                    // name  value                                  
+                    // ptr      指针从6 到 11  ----------->             6        w
+                    // len      5                                      7        o
+                    //                                                 8        e
+                    //                                                 9        l
+                    //                                                 10       d
+                    //                                                 
+            // 语法糖
+                // 从前面开始 0 可以不写
+                let hello = &s[..5];
+
+                // 到末尾结束，后面也可以不写
+                let world = &s[6..];
+
+                // 所有字符串的切片 前后都不写
+                let whole = &s[..];
+
+                println!("{}, {}", hello, world); // hello, world
+        // 注意
+            // 字符串切片的范围索引必须发送在有效的 Utf-8 字符串边界内。
+            // 如果尝试从一个多字节的字符串创建字符串切片，程序会报错并退出
+
+        // 用切片 修改之前例子
+            let mut s = String::from("hello");
+
+            let worldIndex = first_world_2(&s); // 5 
+        
+            // s.clear(); // 不可以把s 借用为可变的，因为它已经是不可变的了
+            println!("worldIndex first_world_2, {}", worldIndex); // worldIndex first_world_2, hello
+            
+            fn first_world_2(s: &String) -> &str{ // &str 字符串切片
+                let bytes = s.as_bytes();
+
+                for (index, &item) in bytes.iter().enumerate() {
+                    if item == b' ' {
+                        return &s[..index];
+                    }
+                }
+                &s[..]
+            }
+
+        // 字符串字面值是切片
+            // 字符串字面值被直接存储在二进制程序中
+
+            // s: &str = 它就是指向二进制程序 特定位置的一个切片
+            // &str 是不可变的引用 ，所以字符串字面值 是不可变的
+            let s = "Hello World";
+
+            // 变量s的类型是&str，它是一个指向二进制程序特定位置的切片
+                // &str 是不可变的引用，所以字符串字面值也是不可变的
+
+        // 字符串切片作为参数传递
+            // fn first_world(s: &String) -> &str {}
+            // 有经验的rust 开发者会采用 &str 作为参数类型，因为这样就可以同时接受 String 和 &str类型的参数了。
+            // fn first_world(s: &str) -> &str {}
+                // 使用字符串切片，直接调用该函数
+                // 使用String，可以创建一个完整的String 切片来调用该函数
+                // 也可以直接使用String
+            
+            // 定义函数时可以使用字符串切片来代替字符串引用会使我们APi 更加通用，且不会损失任何功能。
+
+            let mut s = String::from("hello");
+            let worldIndex = first_world_3(&s);
+            println!("world index 1{}", worldIndex); // world index1 hello 
+
+            let worldIndex = first_world_3(&s[..]);
+            println!("world index 2{}", worldIndex); // world index2 hello
+            
+            let s = "Hello World";
+            let worldIndex = first_world_3(s);
+            println!("world index 3{}", worldIndex); // world index 3Hello
+            fn first_world_3(s: &str) -> &str{ // &str 字符串切片
+                let bytes = s.as_bytes();
+
+                for (index, &item) in bytes.iter().enumerate() {
+                    if item == b' ' {
+                        return &s[..index];
+                    }
+                }
+                &s[..]
+            }
+    // 其他类型的切片
+        let a = [1, 2, 3, 4, 5];
+        
+        // slice 切片 就是在Stack 存储了一个指针指向了一个Heap中起始位置 到结束位置的一个指针
+        // 还有个长度 是2
+
+        let slice = &a[1..3];
+}
+
+fn struct_(){
+    // struct 结构体  --- json 差不多
+        // 自定义的数据类型
+        // 为相关联的值命名， 打包 => 有意义的组合
+
+    // 定义 struct
+        // 使用 struct 关键字，并为整个 struct 命名
+        // 在花括号内，为所有字段（field）定义名称和类型
+
+        struct User {
+            username: String,
+            email: String,
+            sign_in_count: u64,
+            active: bool,
+        }
+    // 实例化 struct
+        // 需要创建 struct 的实例：
+            // 为每个字段指定具体值
+            // 无需按声明的顺序进行指定
+        
+        // 注意：一旦 struct 的实例是可变的，那么实例中所有的字段都是可变的
+        let mut user1 = User {
+            email: String::from("xuhappy@qq.com"),
+            username: String::from("xuhappy"),
+            active: true,
+            sign_in_count: 1,
+        }; // 必须要和struct 对应字段复制，不能少 不能多
     
+    // 获取 struct 某个值
+        // 使用 . 点标记法
+        user1.active = false;
+        println!("username, {}", user1.username);
+    
+    // struct 可以作为函数的返回值
+        fn build_user (email: String, username: String) -> User {
+            User { 
+                username: username, 
+                email: email, 
+                sign_in_count: 1, 
+                active: true
+            }
+        };
+    // 字段初始化简写
+        // 当字段名与字段值对应变量名相同时，就可以使用字段初始化简写的方式
+        fn build_user_1 (email: String, username: String) -> User {
+            User { 
+                username, 
+                email, 
+                sign_in_count: 1, 
+                active: true
+            }
+        };
+    // struct 更新语法
+        // 当你想基于某个struct 实例来创建 一个新实例的时候，可以使用 struct 更新语法：
+        let user2 = User {
+            username: String::from("xuhappy222"),
+            email: String::from("111@qq.com"),
+            active: user1.active,
+            sign_in_count: user1.sign_in_count,
+        };
+        // 如果 username email 这俩需要自己声明 正常写， active sign_in_count 而外的这俩需要 user1 的属性 就不用显示的写，可以使用一些方法
+        // user2 还没赋值的字段 都会把user1 所以字段 给 user2 
+        let user2 = User {
+            username: String::from("xuhappy222"),
+            email: String::from("111@qq.com"),
+            ..user1
+        };
+    
+    // Tuple struct
+        // 可以定义类似 tuple 的 struct ，叫做 tuple struct 
+            // tuple struct 整体有个名，但里面的元素没有名
+            // 适用：想给整个tuple 起名，并让它不同于 其它 tuple ，而且又不需要给每个元素起名
+        // 定义 tuple struct ：适用 struct 关键字，后边是名字，以及里面元素的类型
+
+        struct Color(i32, i32, i32);
+        struct Point(i32, i32, i32);
+
+        let black = Color(0, 0, 0);
+        let origin = Point(0, 0, 0);
+
+        // black 和 origin 是不同的类型，是不同 tuple struct 的实例。
+    
+    // unit-like struct （没有任何字段）
+        // 可以定义没有任何字段的 struct ，叫做 unit-like struct （因为与() , 单元类型类似）
+        // 适用于需要在某个类型上实现某个 trait，但是在里面又没有想要存储的数据
+
+    // struct 数据的所有权
+        struct UserInfo {
+            username: String,
+            email: String,
+            sign_in_count: u64,
+            active: bool,
+        }
+        // 这里的字段使用了 String 而不是 &str:
+            let userinfo_1 = UserInfo {username: String::from("xuhappy"), email: String::from("123@qq.com"), sign_in_count: 2, active: false,};
+            // 该struct实例拥有其所有的数据
+            // 只要struct 实例是有效的，那么里面的字段数据也是有效的
+        // struct 里也可以存放引用，但这需要使用生命周期
+            // 生命周期保证只要struct实例是有效的，那么里面的引用也是有效的.
+            // struct UserInfo_2 {
+            //     // missing lifetime specifier
+            //     // 没有指定生命周期
+            //     username: &str,
+            //     email: String,
+            //     sign_in_count: u64,
+            //     active: bool,
+            // }
+    // 例子： 计算长方形面积
+        #[derive(Debug)] //注解：对struct 显示的选择 debug 打印功能
+        struct Rectangle {
+            width: u32,
+            height: u32,
+        }      
+        
+        let rect = Rectangle {
+            width: 100,
+            height: 20,
+        };
+
+        println!("{}", calculate_rectangle(&rect)); // 2000
+
+        /**
+         * Rectangle {
+            width: 100,
+            height: 20,
+        }
+         */
+        // "{}" // rust 没有对 struct 实现Display接口
+        println!("{:#?}", rect); // {:?} {:#?} 打印 struct 
+
+        fn calculate_rectangle(rect: &Rectangle) -> u32{
+            rect.width * rect.height
+        }
+    // struct 里面定义方法
+        // 方法和函数类似：fn 关键字， 名称，参数，返回值
+        // 方法与函数不同之处：
+            // 方法是在 struct (或 enum, trait对象) 的上下文中定义
+            // 第一个参数是self，表示方法被调用的struct 实例
+    
+        // 定义方法
+            // 在impl 块里定义方法
+            // 方法第一个参数可以是 &self (借用)， 也可以获得其所有全，可变借用（&mut self）。是其它参数一样
+            // 更良好的语言组织
+            impl Rectangle {
+                fn calculate(&self) -> u32 {
+                    self.height * self.width
+                }
+            }
+
+            let rect = Rectangle {
+                width: 100,
+                height: 20,
+            };
+            
+            println!("{}", rect.calculate()); // 2000
+        // 方法调用的运算符
+            // C / C++: object -> something() 和 (*object).something() 一样
+            // Rust 没有 -> 运算符
+            // Rust 会自动引用或解引用
+                // 在调用方法时 就 会发生这种行为
+            // 在调用方法时，Rust 根据情况自动添加 &，&mut（可变引用） 或 *(解引用)，以便object 可以匹配方法的签名
+            
+            // 下面两行代码效果相同：
+                // p1.distance(&p2);
+                // (&p1).distance(&p2);
+
+        // 方法参数
+            // 方法可以有多个参数
+            impl Rectangle{
+                fn can_hold(&self, other: &Rectangle) -> bool{
+                    self.width > other.width && self.height > other.height
+                }
+            }
+
+            let rect1 = Rectangle {
+                width: 30,
+                height: 50,
+            };
+
+            let rect2 = Rectangle {
+                width: 10,
+                height: 20,
+            };
+
+            println!("{}", rect1.can_hold(&rect2)); // true
+        // 关联函数
+            // 可以在impl块里定义不把self作为第一个参数的函数，它叫做关联函数（不是方法）
+                // 例如：String::from() 关联函数
+            // 关联函数通常用于构造器, 创建被关联类型的实例（例子）
+
+            impl Rectangle {
+                fn square(size: u32) -> Rectangle {
+                    Rectangle { width: size, height: size }
+                }
+            }
+
+            let square = Rectangle::square(20);
+            println!("{:#?}", square);
+
+            // ::符号
+                // 关联函数
+                // 模块创建的命名空间
+
+            // 多个 impl 块
+                // 每个struct 允许拥有多个 impl 块
+
+}
+
+fn enum_(){
+    // 枚举
+        // 枚举允许我们列举所有可能的值来定义一个类型
+
+        // 定义枚举
+            // IP地址：IPv4，IPv6
+            enum IpAddrKind {
+                V4,
+                V6
+            }
+        // 获取枚举值
+            let four = IpAddrKind::V4;
+            let six = IpAddrKind::V6;
+            // 枚举的变体都位于标识符的命名空间下，使用两个冒号::进行分隔
+
+            fn route(ip_kind:IpAddrKind){}
+
+            route(four);
+            route(IpAddrKind::V6);
+
+        // 将数据附加到枚举的变体中 
+            // 将枚举 加入到 struct 里面
+                struct IpAddr{
+                    kind: IpAddrKind,
+                    address: String,
+                }
+
+                let home = IpAddr {
+                    kind: IpAddrKind::V4,
+                    address: String::from("127.0.0.1"),
+                };
+
+                let loopback = IpAddr{
+                    kind: IpAddrKind::V6,
+                    address: String::from("::1"),
+                };
+
+            enum IpAddr_2{
+                V4 (String),
+                V6 (String),
+            }
+            // 优点：
+                // 不需要额外使用 struct
+                // 每个变体可以拥有不同的类型 以及关联的数据量
+            
+            // 例如：
+                enum IpAddr_3 {
+                    V4(u8,u8,u8,u8),
+                    V6(String),
+                }
+
+                let home = IpAddr_3::V4(127, 0, 0, 1);
+                let loopback = IpAddr_3::V6(String::from("::1"));
+
+        // 标准库中的IpAddr
+            struct Ipv4Addr {
+
+            }
+
+            struct Ipv6Addr {
+
+            }
+            // 可以在枚举的变体中 嵌入任意类型的数据，无论是字符串 数值 结构体
+            enum IpAddr_4 {
+                V4(Ipv4Addr),
+                V6(Ipv6Addr)
+            }
+            let ipv4 = Ipv4Addr {
+
+            };
+            let ip = IpAddr_4::V4(ipv4);
+            
+            // 例子：
+                enum Message {
+                    Quit,
+                    Move {x: i32, y: i32}, // 匿名结构体
+                    Write(String),
+                    ChangeColor(i32, i32, i32),
+                }
+
+                let q = Message::Quit;
+                let m = Message::Move { x: 0, y: 10 };
+                let w = Message::Write(String::from("Hello"));
+                let c = Message::ChangeColor(0, 0, 0);
+        // 为枚举定义方法
+            // 也使用 impl 关键字
+            impl Message {
+                fn call(&self) {
+
+                }
+            }
+            q.call();
+    // Option 枚举
+        // 标准库中
+
+}
+
+fn match_(){
+    // 强大的控制流运算符 - match
+        
+}
+
+fn gather_vector(){
+    // 使用 Vector 存储多个值
+        // Vec<T>, 叫做 Vector
+        // 由标准库提供
+        // 只能存储相同类型的数据
+        // 值在内存中连续存放
+
+        // 创建 Vector
+            // Vec::new 函数
+                let v: Vec<i32> = Vec::new();
+            // 使用初始值 创建 Vec<T> , 使用 vec! 宏
+                let v = vec![1,2,3];
+        // 更新 Vector
+            // 向 Vector 添加元素，使用 push 方法
+                let mut v = Vec::new();
+                v.push(1);
+        // 删除 Vector
+            // 与任何其他 struct 一样，当 Vector 离开作用域后
+                // 它就被清理掉了
+                // 它所有的元素也被清理掉了
+                fn test(){
+                    let v = vec![1, 2, 3];
+                } // v 被清掉
+        // 读取 Vector 的元素
+            // 两种方式可以引用 Vector 里的值：
+                // 索引  -> 索引超出 会报错 -- 终止
+                let one: &i32 = &v[0]; 
+                // get 方法 -> Option<&I::Output> -> 索引超出不会报错，返回 None
+                match v.get(2) { 
+                    Some(one) => println!("in"),
+                    None => println!("not"),
+                }
+            // 索引 vs get 处理访问越界
+                // 索引：panic
+                // get：返回 None
+        // 所有权和借用规则
+            // 不能在同一个作用域内同时拥有可变和不可变引用
+                // cannot borrow `v` as mutable, as it is not declared as mutable
+
+                // let v = vec![1, 2, 3, 4, 5];
+                // let one = &v[0]; // 不可变的借用
+                // v.push(6); // 可变的 cannot borrow as mutable
+                // println!("{}", one); // 不可变的
+        // 小案例 - for 循环
+            let nums = vec![1, 2, 3, 4, 500];
+            for num in nums {
+                println!("num -> {}", num);
+            }
+            
+            // for num in nums{
+
+            // }
+
+
+}
+
+mod test;
+
+fn main() {
+
     // variable(); // 9 变量
     // data_type(); // 10 11  数据类型
     // function(); // 12 函数
     // control(); // 13 14 控制流
-
     // ownership(); // 15 16 17 所有权
+    // reference(); // 18 引用
 
-    reference(); // 18 引用
+    // slice(); // 19 切片
+
+    // struct_(); // 20 21 22 struct
+
+    // enum_(); //23 24 枚举  ---- 
+
+    match_(); // 25 控制流运算符
+
+    gather_vector(); // 8-1  33 34 常用的集合 -- 存储在 heap 中
+
+    // test::practise();
     
     // println!("Hello, world!");
 }
+
