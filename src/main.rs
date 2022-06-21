@@ -1244,14 +1244,124 @@ fn enum_(){
                 }
             }
             q.call();
-    // Option 枚举
-        // 标准库中
+    // 6. 枚举 与 模式匹配
+        // Option 枚举
+            // 定义于标准库中
+            // 在Prelude （预导入模块）中
+            // 描述了：某个值 可能存在 （某种类型）或不存在的情况
+        // Rust 没有 Null
+            // 其它语言中：
+                // Null 是一个值，它表示 “没有值”
+                // 一个变量可用处于两种状态：空值（null），非空
+            // Null 引用：Billion Dollar Mistake 价值两亿美元的设计
+            // Null 的问题在于，当你尝试想使用非Null值 那样使用 Null值的时候，就会引起某种错误
+            // Null 的概念还是有用的：因某种原因而变为无效或缺失的值
 
+            // Rust 中类似Null概念的枚举  - Option<T>
+                // 标准库中的定义：
+                    // enum Option<T> {
+                    //     Some(T),
+                    //     None,
+                    // }
+                // 它包含在 Prelude （预导入模块）中。可直接使用:
+                    // Option<T>
+                    
+                    // Some(s32)
+                        let some_number = Some(1);
+                        let some_string = Some("Hello, world!");
+                    // None
+                        let absent_number: Option<i32> = None;
+                // Option<T> 比 Null 好在那？
+                    // Option<T> 和 T 是不同的类型，不可以把Option<T> 直接当成 T
+                        let x: i8 = 5;
+                        let y:Option<i8> = Some(5);
+                        // cannot add `std::option::Option<i8>` to `i8`
+                        // let sum = x + y;
+
+                    // 若想使用 Option<T> 中的T，必须将它转换为 T
+                    // 而在 C# 中：
+                        // string a = null;
+                        // string b = a + "123456";
+                    // 在 rust 中 如果不是 Option 类型， 那么它就不会有 Null， 如果想用使用里面的 T，必须要转换
 }
 
 fn match_(){
     // 强大的控制流运算符 - match
-        
+        // 允许一个值 与 一系列模式进行匹配，并执行匹配的模式对应的代码
+        // 模式可以是 字面值，变量名，通配符 ..
+            enum Coin {
+                Penny,
+                Kickel,
+                Dime,
+                Quarter(UsState),
+            }
+
+            fn value_in_cents(coin: Coin) -> u8 {
+                match coin {
+                    Coin::Penny => {
+                        println!("penny");
+                        1
+                    },
+                    Coin::Kickel => 5,
+                    Coin::Dime => 10,
+                    Coin::Quarter(state) => {
+                        println!("state {:?}", state); // state Alaska
+                        25
+                    },
+                }
+            }
+        // 绑定值的模式
+            // 匹配的分支可以绑定到被匹配对象的部分值。
+                // 因此，可以从 enum 变体中提取值。
+
+                #[derive(Debug)]
+                enum UsState {
+                    Alabama,
+                    Alaska
+                }
+            
+            let c = Coin::Quarter(UsState::Alaska);
+            println!("{}", value_in_cents(c)); // 25
+    // 匹配 Option<T>
+        fn plus_one(x: Option<i32>) -> Option<i32> {
+            match x {
+                None => None,
+                Some(x) => Some(x + 1),
+            }
+        }
+
+        let six = plus_one(Some(5));
+        println!("{:?}", six); // Some(6)
+        let none = plus_one(None);
+        println!("{:?}", none); // None
+    // match 匹配 必须穷举所有的可能
+        // fn plus_one_2(x: Option<i32>) -> Option<i32> {
+            // non-exhaustive patterns: `None` not covered
+            // none 这个可能性 没有被覆盖
+            // match x {
+                // // None => None,
+                // Some(x) => Some(x + 1),
+            // }
+        // }
+        // _ 通配符：替代其余没列出的值
+            let v = 0u8;
+            match v {
+                1 => println!("one"),
+                2 => println!("two"),
+                _ => ()
+            }
+    // if let
+        // 处理只关心一种匹配 而忽略其它匹配的情况
+            let v = Some(1u8); // one
+            match v {
+                Some(1) => println!("one"),
+                _ => ()
+            }
+
+            if let Some(1) = v {
+                println!("one") // one
+            }
+
 }
 
 fn gather_vector(){
@@ -1298,22 +1408,44 @@ fn gather_vector(){
                 // v.push(6); // 可变的 cannot borrow as mutable
                 // println!("{}", one); // 不可变的
         // 小案例 - for 循环
-            let nums = vec![1, 2, 3, 4, 500];
-            for num in nums {
+            let mut nums = vec![1, 2, 3, 4, 500];
+            for num in &mut nums{
+                *num += 50; // * 解引用
+            }
+
+            for num in &nums {
                 println!("num -> {}", num);
             }
-            
-            // for num in nums{
+    // 使用 enum 来存储多种数据类型
+        // Enum 的变体可以附加不同类型的数据
+        // Enum 的变体定义在同一个 enum 类型下
+            enum SpreadsheetCell {
+                Int(i32),
+                Float(f64),
+                Text(String),
+            }
 
-            // }
+            let mut row = vec![
+                SpreadsheetCell::Int(4),
+                SpreadsheetCell::Float(32.22), 
+                SpreadsheetCell::Text(String::from("Hello")), 
+            ];
 
+            row.push(
+                SpreadsheetCell::Int(4),
+            )
+
+}
+
+
+fn string(){
 
 }
 
 mod test;
 
 fn main() {
-
+    
     // variable(); // 9 变量
     // data_type(); // 10 11  数据类型
     // function(); // 12 函数
@@ -1329,8 +1461,9 @@ fn main() {
 
     match_(); // 25 控制流运算符
 
-    gather_vector(); // 8-1  33 34 常用的集合 -- 存储在 heap 中
+    // gather_vector(); // 8-1 8-2  33 34 常用的集合 -- 存储在 heap 中
 
+    // string(); // 8-3  8-4  35 36
     // test::practise();
     
     // println!("Hello, world!");

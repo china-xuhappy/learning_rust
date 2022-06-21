@@ -6,6 +6,7 @@ struct UserModel {
   sign: String, // 获取数据 - 签名
 }
 
+
 impl UserModel {
   // 用户注册
   fn register(user: &UserModel) -> bool {
