@@ -1357,12 +1357,172 @@ fn match_(){
                 Some(1) => println!("one"),
                 _ => ()
             }
-
+        // 更少的代码，更少的缩进，更少的模板代码
+        // 放弃了 穷举的可能
+        // 可以把 if let 看作是 match 的语法糖
             if let Some(1) = v {
                 println!("one") // one
+            }else {
+                println!("others");
             }
+        // 搭配 else 使用
 
 }
+
+fn package_crate_module() {
+    // Rust 的代码组织
+        // 代码组织主要包括：
+            // 哪些细节可以暴露，哪些细节是私有的
+            // 作用域内哪些名称有效
+            // ...
+        // 模块系统：
+            // package(包): Cargo的特性，让你构建，测试，共享crate
+            // crate(单元包)：一个模块树，它可产生一个 library 或可执行文件
+            // module(模块)：use: 让你控制代码的组织，作用域，私有路径
+            // Path(路径): 为 struct ，function，或 module 等项命名的方式
+
+    // Package 和 Crate
+        // Crate 的类型：
+            // binary
+            // library
+
+        // Crate Root: (根) -- 入口
+            // 是源代码的文件
+            // Rust 编译器从这里开始，组成你的 Crate 的根 Module
+        
+        // 一个 package：
+            // 包含 1个 Cargo.toml, 它描述了 如何构建这些 crates 
+            // 只能包含 0 - 1个 library carte
+            // 可以包含任意 数量的 binary crate
+            // 但必须至少 包含一个 crate (library 或 binary)
+
+        // Cargo 的惯例
+            // src/main.rs:
+                // - binary crate 的 crate root
+                // - crate 名 与 package 名相同
+            // src/lib.rs:
+                // - package 包含一个 library crate
+                // - library crate 的 crate root
+                // - crate 名 与 package 名相同
+            // Cargo 把 crate root 文件交给 rustc 来构建 library 或 binary
+
+            // 一个 package 可以同时包含 src/main.rs 和 src/lib.rs
+                // 一个 binary crate， 一个 library crate
+                // 名称 与 package 名相同
+
+            // 一个 package 可以有多个 binary crate：
+                // 文件放在 src/bin
+                // 每个文件是单独的 binary crate
+        // crate 的 作用
+            // 将相关功能组合到一个作用域内，便于在项目间进行共享
+                // 防止冲突
+            // 例如 rand crate, 访问它的功能 需要通过它的名字：rand
+        
+        // 定义 module 来控制作用域和私有性
+            // module：
+                // 在一个 crate内，将代码进行分组
+                // 增加可读性，易于复用
+                // 控制项目 (item) 的私有性。 public，private
+            // 建立 module：
+                // mod 关键字
+                // 可嵌套
+                // 可包含其他项 （struct ， enum， 常量，trait ， 函数 等）的定义
+                    // mod front_of_house {
+                    //     mod hosting {
+                    //         fn add_to_waitlist(){}
+                    //         fn seat_at_table(){}
+                    //     }
+                    //     mod serving {
+                    //         fn take_order(){}
+                    //     }
+                    // }
+                // src/main.rs 和 src/lib.rs 叫做 crate roots:
+                    // 这两个文件 （任意一个）的内容形成了名为 crate 的模块，位于整个模块树的根部
+                    // crate
+                        // -> front_of_house
+                            // ->  hosting
+                                // -> add_to_waitlist
+                                // -> seat_at_table
+                            // -> serving
+                                // -> take_order
+    
+    // 路径(path)
+        // 为了在 Rust 的模块中找到某个条目，需要使用路径。
+        // 路径的两种形式：
+            // 绝对路径：从 crate root 开始，使用crate名 或 字面值 crate
+            // 相对路径：从当前模块开始，使用 self，super 或当前模块的标识符
+        // 路径至少由一个标识符组成，标识符之间使用 ::
+            // 案例 在 lib.rs 里面
+            // pub fn eat_at_restaurant(){
+            //     crate::front_of_house::hosting::add_to_waitlist();
+            // }
+        
+        // 私有边界（privacy boundary）
+            // 模块不仅可以组织代码，还可以定义私有边界
+            // 如果想把函数 或 struct 等设为私有，可以将它放到某个模块中
+            // Rust 中所有的条目（函数，方法，struct，enum，模块，常量）默认都是私有的。
+            // 父级模块无法访问 子模块的私有条目
+            // 子模块里可以使用所有祖先模块中的条目
+
+        // pub 关键字
+            // 案例 在 lib.rs 里面
+            // 使用 pub 关键字来将某些条目记为公共的
+        
+        // super 关键字
+            // super：用来访问父级模块路径中的内容，类似文件系统中的 ..
+            // 案例 在 lib.rs 里面
+        
+        // pub struct
+            // pub 放在 struct 前面
+                // struct 是公共的
+                // struct 的字段默认是私有的
+            // struct 的字段需要单独设置 pub 来变成共有的。
+            
+            // 实例 在 lib.rs 里面
+        // pub enum
+            // pub 放在 enum 前面
+                // enum 是公共的
+                // enum 的变体也都是公共的
+
+    // use
+        // 可以使用 use 关键字将路径导入到作用域内
+            // 仍遵循私有性规则
+        
+        // use 的习惯用法
+            // 函数：将函数的父级模块引入作用域 （指定的父级）
+
+            // struct, enum, 其他：指定完整路径（指定到本身）
+                use std::collections::HashMap;
+                let mut map = HashMap::new();
+                map.insert(1, 2);
+            
+            // 同名条目：指定父级
+                // use std::fmt;
+                // use std::io;
+
+                // fn f1() -> fmt::Result {
+
+                // }
+                // fn f2() -> io::Result{
+
+                // }
+            // as 关键字
+                // as 关键字可以为引入的路径指定本地的别名
+                    // use std::fmt::Result;
+                    // use std::io::Result as IoResult;
+
+                    // fn f11() -> Result{
+
+                    // }
+                    // fn f22() -> IoResult{
+
+                    // }
+            
+
+
+
+
+}           
 
 fn gather_vector(){
     // 使用 Vector 存储多个值
@@ -1459,7 +1619,9 @@ fn main() {
 
     // enum_(); //23 24 枚举  ---- 
 
-    match_(); // 25 控制流运算符
+    // match_(); // 25 26 控制流运算符
+
+    package_crate_module(); // 27     package(包) crate(单元包) module(模块)
 
     // gather_vector(); // 8-1 8-2  33 34 常用的集合 -- 存储在 heap 中
 
