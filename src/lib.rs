@@ -37,6 +37,8 @@ mod back_of_house {
 }
 
 // 使用绝对路径 引入
+  // 默认使用 use 是私有的 只能在该文件内访问
+    // 可以使用 pub use 外部代码 就可以访问 Breakfast
 use crate::back_of_house::Breakfast;
 
 // 使用相对路径
@@ -51,3 +53,6 @@ pub fn eat_restaurant() {
   // meal.seasonal_fruit = String::from("hello");
 
 }
+
+
+mod loan;

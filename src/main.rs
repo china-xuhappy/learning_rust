@@ -146,7 +146,7 @@ fn data_type(){
 
             let x = 'z';
 
-            let y:char = 'y';
+            let y: char = 'y';
 
     // 复合类型
         // 复合类型可以将多个值放在一个类型
@@ -1492,9 +1492,9 @@ fn package_crate_module() {
             // 函数：将函数的父级模块引入作用域 （指定的父级）
 
             // struct, enum, 其他：指定完整路径（指定到本身）
-                use std::collections::HashMap;
-                let mut map = HashMap::new();
-                map.insert(1, 2);
+                // use std::collections::HashMap;
+                // let mut map = HashMap::new();
+                // map.insert(1, 2);
             
             // 同名条目：指定父级
                 // use std::fmt;
@@ -1519,8 +1519,52 @@ fn package_crate_module() {
                     // }
             
 
+    // 使用 pub use 重新导出名称
+        // 使用 use 将路径 (名称) 导入到作用域内后，该名称在此作用域内是 私有的
+            // lib.rs 案例
+        // pub use ：重新导出
+            // 将条目引入作用域
+            // 该条目可以被外部代码 引入 到它们的作用域
+    
+    // 使用外部的包 （package）  rand
+        // 1. cargo.toml 添加依赖的包 (package)
+            // https://crates.io/
+        // use 将特定条目引入作用域
+            use rand::Rng;
 
+        // 标准库 (std) 也被当做外部包
+            // 不需要修改 Cargo.toml 来包含 std
+            // 需要使用 use 将std 中特定条目引入当前作用域
+            use std::collections::HashMap;
+            
+    // 使用 嵌套路径 清理大量的 use 语句
+        // 如果使用同一个包 或 模块下的多个条目 （例子）
+            // use std::cmp::Ordering;
+            // use std::io;
+        // 可以使用嵌套路径在同一行内将上述条目进行引入：
+            // 路径相同的部分 :: {路径差异的部分}
+                    // use std::{cmp::Ordering, io};
 
+            // 如果两个 use 路径之一是另一个的子路径
+                // 使用 self
+                // use std::io;
+                // use std::io::Write;
+                use std::io::{self, Write};
+        // 通配符 *
+            // 使用 * 可以把路径中所有的公共条目都引入到作用域。
+                // use std::collections::*;
+
+            // 注意：谨慎使用
+            // 应用场景：
+                // 测试。将所有被测试的代码 引入到 tests 模块
+                // 有时被用于 预导入 (prelude) 模块
+
+    // 将模块 拆分为 不同文件：
+        // 将模块内容移动到其它文件
+            // 模块定义时，如果模块名后边是 “;”， 而不是代码块：
+                // Rust 会从与模块同名的文件中加载内容
+                // 模块树的结构不会变化
+            // 随着模块逐渐变大，该技术让你可以把模块的内容移动到其它文件中
 
 }           
 
@@ -1599,7 +1643,516 @@ fn gather_vector(){
 
 
 fn string(){
+    // Rust 开发者经常会被字符串困扰的原因
+        // Rust 倾向于暴露可能的错误
+        // 字符串数据结构复杂
+        // UTF-8
+    // 
+}
 
+
+use std::{collections::HashMap, fs::File, io::{ErrorKind, self, Read}};
+
+fn hashmap(){
+    // HashMap<K,V>
+        // 键值对的形式存储数据，一个键(Key)，对应一个值 (Value)
+        // Hash 函数: 决定如何在内存中存放 K 和 V
+        // 适用场景：通过 K(任何类型) 来寻找数据，而不是通过索引
+        // HashMap 用的较少，不在 Prelude 中
+        // 标准库对其支持的较少，没有内置的宏来创建 HashMap
+        // 数据存储在 heap 上
+        // 同构的，一个HashMap 中
+            // 所有的 K 必须是同一种类型
+            // 所有的 V 必须是同一个类型
+
+
+        // 创建 HashMap
+            // 创建空 HashMap: new() 函数
+                // let hashmap: HashMap<String, u32> = HashMap::new();
+                // 要么初始化指定， 要么进行insert 插入，确定类型
+                let mut hashmap = HashMap::new();
+
+            // 添加数据: insert(key, value) 方法
+                hashmap.insert(String::from("key"), 32);
+
+        // 另一种创建 HashMap 的方式：collect 方法
+            // 在元素类型 为 Tuple 的 Vector 上使用 collect 方法，可以组建一个 HashMap：
+                // 要求 Tuple 有两个值： 一个作为 K， 一个作为 V
+                // collect 方法可以把数据整合成很多类型，包括 HashMap
+                    // 返回值 需要显示的指明类型
+                
+                let teams = vec![String::from("Blue"), String::from("Yellow")];
+                let intial_scores = vec![10, 50];
+                let scores:HashMap<_,_> = teams.iter().zip(intial_scores).collect();
+        // HashMap 和 所有权
+            // 对于实现了 Copy trait 的类型 (例如 i32)， 值会被复制到 HashMap 中
+            // 对于拥有所有权的值 （例如 String），值会被移动，所有权会转移给 HashMap
+                let str1 = String::from("hello");
+                let mut str2 = String::from("hello2");
+
+                let mut hash1 = HashMap::new();
+                // hash1.insert(str1, str2);
+                // println!("{}, {}", str1, str2); // 值被移动，不能使用
+
+            // 如果将值的引用 插入到 HashMap，值本身不会移动
+                // 在HashMap有效期间，被引用的值必须保持有效
+                hash1.insert(&str1, &str2);
+                // str2 = String::from("hello333"); // 不能分配给`str2`，因为它是借来的， 不能变了
+                println!("{}, {}", str1, str2); 
+
+                let score = hash1.get(&str1);
+                match score {
+                    Some(score) => println!("{}", score),
+                    None => {},
+                }
+
+        // 访问 HashMap 中的值
+            // get 方法
+                // 参数：K
+                // 返回：Option<&V>
+            let score = hash1.get(&str1);
+            match score {
+                Some(score) => println!("{}", score),
+                None => {},
+            }
+
+        // 遍历 HashMap
+            // for
+            for (k, v) in &scores {
+                println!("{}, {}", k, v);
+            }
+        
+        // 更新 HashMap<K,V>
+            // HashMap 大小可变
+            // 每个K同时只能对应一个 V
+            // 更新 HashMap 中的数据：
+                // K已经存在，对应一个V
+                    // 替换现有的V
+                        // 如果向 HashMap 插入一堆 KV，然后再插入同样的K，但是不同的V，那么原来的V 会被替换掉
+                        let mut hash_v = HashMap::new();
+                        hash_v.insert(String::from("K1"), 10);
+                        hash_v.insert(String::from("K1"), 50);
+
+                    // 保留现有的V，忽略新的V 
+                    // 合并现有的V 和 新的 V
+                // K 不存在
+                    // 添加一对 K，V
+
+            // 只在K不对应任何值的情况下，才插入 V
+                // entry 方法：检查指定K 是否对应一个 V
+                    // 参数为 K
+                    // 返回 enum Entry：代表值是否存在
+                // Entry 的 or_insert() 方法:
+                    // 返回
+                        // 如果k存在，返回到对应的 V 的一个可变引用
+                        // 如果k不存在，将方法参数作为K的新值插进去，返回到这个值的可变引用。
+                let mut hash_t = HashMap::new();
+                hash_t.insert(String::from("Blue"), 10);
+
+                // 如果k不存在，将方法参数作为K的新值插进去，返回到这个值的可变引用。
+                hash_t.entry(String::from("Yellow")).or_insert(50);
+
+                // 如果k存在，返回到对应的 V 的一个可变引用
+                hash_t.entry(String::from("Blue")).or_insert(20);
+
+            // 基于现有V 更新 V
+                let text = "hello world wonderful world";
+
+                let mut map = HashMap::new();
+
+                for word in text.split_whitespace(){
+                    let count = map.entry(word).or_insert(0);
+                    *count += 1;
+                }
+                println!("{:#?}", map);
+            // Hash 函数
+                // 默认情况下，HashMap 使用加密功能强大的 Hash 函数，可以抵抗拒绝服务(DOS) 共计。
+                    // 不是可用的最快的 Hash 算法
+                    // 但具有更好安全性
+                // 可以使用不同的 hasher 来切换到另一个函数
+                    // hasher 是实现 BuildHasher trait 的类型
+
+}
+
+fn panic_ () {
+    // 错误处理
+    // Rust 错误处理 概述
+        // Rust 的可靠性：错误处理
+            // 大部分情况下：在编译时提示错误，并处理
+        
+        // 错误的分类：
+            // 可恢复
+                // 例如文件未找到，可再尝试
+            // 不可恢复
+                // bug，例如访问的索引超出范围
+        
+        // Rust 没有类似异常的机制
+            // 可恢复错误：Result<T, E>
+            // 不可恢复: panic! 宏
+
+    // 不可恢复的错误 与 panic!
+        // 当 panic! 宏执行：
+            // 你的程序会打印一个错误信息
+            // 展开(unwind) , 清理调用栈 (stack)
+            // 退出程序
+    
+    // 为应对 panic, 展开或终止(abort) 调用栈
+        // 默认情况下，当 panic 发生：
+            // 程序展开调用栈 (工作量大)
+                // Rust 沿着调用栈往回走
+                // 清理每个遇到函数中的数据
+            // 或立即中止调用栈：
+                // 不进行清理，直接停止程序
+                // 内存需要 os 系统 进行清理
+        // 想让二进制文件更小，把设置从 “展开” 改为 “中止”：
+            // 在 Cargo.toml 中适当的 profile 部分设置：
+                // panic = 'abort'
+                // [profile.release]
+                // panic = 'abort'
+    
+    // 使用 panic! 产生的回溯信息
+        // panic!("panic error!") // thread 'main' panicked at 'panic error!' src\main.rs:1814:9
+
+        // panic! 可能出现在:
+            // 我们写的代码中
+            // 我们所依赖的代码中
+
+        // 可通过调用 panic! 的函数的回溯信息来定位引起的问题的代码
+            let v = vec![1, 2, 3, 4, 5];
+            v[99];
+        // 通过设置环境变量 RUST_BACKTRACE 可得到回溯信息
+
+        // 为了获取带有调试信息的回溯，必须启用调试符号 (不带 --release)
+
+    
+    // 9-4 什么时候 应该是用 panic!
+        // 总体原则
+            // 在定义一个可能失败的函数时，优先考虑返回 Result
+            // 否则就panic!
+        
+        // 编写示例，原型代码，测试
+            // 可以使用 panic!
+                // 演示某些概念：unwrap
+                // 原型代码：unwrap，expect
+                // 测试：unwrap，expect
+        
+        // 有时你比编译器掌握更多的信息
+            // 你可以确定 Result 就是 OK：unwrap
+            use std::net::IpAddr;
+            // 我知道他一定是对的 不会报错
+            let home:IpAddr = "127.0..0.1".parse().unwrap();
+        // 场景建议
+            // 调用你的代码，传入无意义的参数值：panic!
+            // 调用外部不可控代码，返回非法状态，你无法修复：panic!
+            // 如果失败是可预期的: Result
+            // 当你的代码对值进行操作，首先应该验证这些值：panic!
+
+        // 为验证创建自己定义类型
+
+            // 创建新的类型，把验证逻辑放在构造实例的函数里。
+            pub struct Guess{
+                value: i32,
+            }
+
+            impl Guess {
+                pub fn new(value: i32) -> Guess{
+                    if value < 1 || value > 100{
+                        panic!("Guess value must be between 1 and 100, got {}", value);
+                    }
+                    Guess { value: value }
+                }
+                pub fn value(&self) -> i32 { self.value }
+            }
+
+            loop {
+                let guess = "32";
+
+                let guess:i32 = match guess.trim().parse() {
+                    Ok(num) => num,
+                    Err(_) => continue,
+                };
+
+                let guess = Guess::new(guess);
+            }
+}
+
+fn result(){
+    // Result 枚举
+        // enum Result<T, E> {
+            // Ok(T),
+            // Err(E),
+        // }
+
+        // T: 操作成功情况下，OK 变体里返回的数据的类型
+        // E: 操作失败情况下，Err 变体里返回的错误的类型
+        
+        // 处理 Result 的一种方式：match 表达式
+            // 和 Option 枚举一样，Result 及其变体也是 由 Prelude 带入作用域
+                // let f = File::open("hello.txt");
+
+                // let f = match f {
+                //     Ok(file) => file,
+                //     Err(error) => {
+                //         panic!("Error opening file {:?}", error) // Error opening file Os { code: 2, kind: NotFound, message: "系统找不到指定的文件。" }
+                //     }
+                // };
+        // 匹配不同的错误
+                // let f = File::open("hello.txt");
+
+                // let f = match f {
+                //     Ok(file) => file,
+                //     Err(error) => match error.kind() {
+                //         ErrorKind::NotFound => match File::create("./hello.txt") { // 创建成功
+                //             Ok(file) => file,
+                //             Err(error) => panic!("file create error {:?}", error)
+                //         },
+                //         ee => panic!("qi ta bao cuo")
+                //     }
+                // };
+            // 上例中使用了很多 match...
+            // match 很有用，但是很原始
+            // 闭包(closure)。Result<T, E> 有很多方法：
+                // 它们接受闭包作为参数
+                // 使用match 实现
+                // 使用这些方法 会让代码 更简洁
+
+                // let f = File::open("hello1.test").unwrap_or_else(|error| {
+                //     if error.kind() == ErrorKind::NotFound {
+                //         File::create("hello1.test").unwrap_or_else(|error| {
+                //           panic!("file create error {:?}", error)  
+                //         })
+                //     } else {
+                //         panic!("qi ta bao cuo")
+                //     }
+                // });
+        // unwrap
+            // unwrap: match 表达式的一个快捷方法：
+                // 如果 Result 结果是 OK，返回OK里面的值
+                // 如果 Result 结果是 Err，调用 panic！宏
+                // let f = File::open("hello1.test").unwrap(); // Result::unwrap()` on an `Err` value: Os { code: 2, kind: NotFound, 
+        // expect
+            // expect: 和 unwrap 类似，但可指定错误信息
+                // let f = File::open("hello.txt").expect("自定义错误"); // '自定义错误: Os { code: 2, kind: NotFound, message: "系统找不到指定的文件。"
+    
+    // 传播错误
+        // 在函数出处理错误
+        // 将错误返回给调用者
+            fn read_username_from_file() -> Result<String, io::Error> {
+                let f = File::open("hello.txt");
+
+                let mut f = match f {
+                    Ok(file) => file,
+                    Err(e) => return Err(e),
+                };
+
+                let mut s = String::new();
+                match f.read_to_string(&mut s) {
+                    Ok(_) => Ok(s),
+                    Err(e) => Err(e),
+                }
+            }
+
+            read_username_from_file();
+        // ? 问号运算符：传播错误的一种快捷方式
+            // 如果 Result 是OK， OK中的值就是表达式的结果，然后继续执行程序
+            // 如果 Result 是Err，Err就是整个函数的返回值，就像使用了 return
+
+            fn read_username_from_file_2() -> Result<String, io::Error> {
+                // //? 如果 成功 OK，就会当做表达式的值进行返回，如果error 直接返回error
+                let mut f = File::open("hello.txt")?; 
+                // let mut f = match File::open("hello.txt") {
+                //     Ok(file) => file,
+                //     Err(e) => return Err(e),
+                // };
+
+                let mut s = String::new();
+                f.read_to_string(&mut s)?;
+                Ok(s)
+                // match f.read_to_string(&mut s) {
+                //     Ok(_) => Ok(s),
+                //     Err(e) => Err(e),
+                // }
+            }
+        // ? 与 from 函数
+            // trait std::convert::From 上的 from 函数
+                // 用于错误之间的转换
+            // 被？梭应用的错误，会隐式的被From 函数处理
+            
+            // 当？调用from函数时：
+                // 它所接收的错误类型会被转化为当前函数返回的类型所定义的错误类型
+            // 用于：针对不同错误原因，返回同一种错误类型
+                // 只要每个错误类型实现了转换为所返回的错误类型的from函数就可以
+        
+        // ? 链式调用
+            fn read_username_from_file_3() -> Result<String, io::Error> {
+                let mut s = String::new();
+                File::open("hello.txt")?.read_to_string(&mut s)?;
+                Ok(s)
+            }
+        // ? 运算符只能用于返回是 Result Option 或者 实现了 try 类型 的函数 
+        
+        // ？运算符与main函数
+            // main 函数返回类型是：（）
+        
+            // main 函数的返回类型也可以是 Result<T, E>
+                // use std::error::Error;
+                // fn main() -> Result<(), Box<dyn Error>>{
+                //     let f = File::open("hello.txt")?;
+                //     Ok(())
+                // }
+            // Box<dyn Error> 是 trait对象：
+                // 简单理解：任何可能的错误类型
+
+}
+
+fn generics(){
+    // 10-1 提取函数以消除 重复代码
+        let value_list = vec![10, 50, 2, 100, 41];
+        let mut largest = value_list[0];
+
+        for value in value_list{
+            if value > largest {
+                largest = value
+            }
+        }
+        println!("largest number is {}", largest); // largest number is 100
+
+        let value_list = vec![100, 5000, 200, 10010, 41];
+        let mut largest = value_list[0];
+
+        for value in value_list{
+            if value > largest {
+                largest = value
+            }
+        }
+        println!("largest number is {}", largest); // largest number is 10010
+        // 重复代码的危害
+            // 容易出错
+            // 需求变更时需要在多处进行修改
+
+        // 消除重复: 提取函数
+            // 识别重复代码
+            // 提取重复代码到函数体中，并在函数签名中指定函数的输入和返回值
+            // 将重复的代码使用函数调用进行代替
+            fn largest_fn(list: &[i32]) -> i32 {
+                let mut largest = list[0];
+
+                for &item in list { // &item 解构 destructure
+                    if item > largest {
+                        largest = item;
+                    }
+                }
+                largest
+            }
+            let value_list = vec![10, 50, 2, 100, 41];
+            largest_fn(&value_list);
+
+            let value_list = vec![100, 5000, 200, 10010, 41];
+            largest_fn(&value_list);
+    
+    // 泛型
+        // 泛型：提高代码复用能力
+            // 处理重复代码的问题
+        // 泛型是具体类型或其它属性的抽象代替：
+            // 你编写的代码不是最终的代码，而是一种模板，里面有一些 “占位符”
+            // 编译器在编译时将“占位符” 替换为具体的类型
+        // 例如：fn largest<T> (list: $[T]) -> T {}
+        // 类型参数：
+            // 很短，通常一个字母
+            // CanmelCase 驼峰命名法
+            // T：type 的缩写
+        
+    // 函数定义中的泛型
+        // 泛型函数：
+            // 参数类型
+            // 返回类型
+        // 声明泛型，函数名后面<T>
+            // fn largest_fn_2<T>(list: &[T]) -> T{
+            //     let mut largest = list[0];
+            //     for &item in list { // &item 解构 destructure
+            //         if item > largest {
+            //             largest = item;
+            //         }
+            //     }
+            //     largest
+            // }
+    // struct 中定义泛型
+        // 可以使用多个泛型的类型参数
+            // 太多类型的参数：你的代码需要重组为多个更小的单元
+
+            // struct Point<T> {
+            //     x: T,
+            //     y: T,
+            // }
+
+            // let integer = Point{x: 1, y: 2};
+        // 数据类型 要一致
+            // let integer = Point{x: 1, y: 2.0};
+    // enum 定义中的泛型
+        // 可以让枚举的变体持有泛型数据类型
+            // 例如：Option<T>, Result<T, E>
+            // enum Option<T> {
+            //     Some(T),
+            //     None
+            // }
+            // enum Result<T, E> {
+            //     Ok(T),
+            //     Err(E),
+            // }
+    // 方法定义中的泛型
+        // 为 struct 或 enum 实现方法的时候，可在定义中使用泛型
+        // 把T放在impl 关键字后，表示在类型T上实现方法
+                // impl <T> Point<T> {
+                //     fn x(&self) -> &T{
+                //         &self.x
+                //     }
+                // }
+        // 只针对具体类型实现方法（其余类型没实现方法）：
+            // 根据具体的类型 实现方法，Point<i32> 才有x1的方法 别的类型没有
+                // impl Point<i32> {
+                //     fn x1(&self) -> &i32 {
+                //         &self.x
+                //     }
+                // }
+        // struct 里的泛型类型参数可以和方法的泛型类型参数不同
+            struct Point<T, U> {
+                x: T,
+                y: U,
+            }
+
+            impl <T,U> Point<T,U> {
+                fn mixup<V,W>(self, other: Point<V,W>) -> Point<T,W> {
+                    Point { x: self.x, y: other.y }
+                }
+            }
+            let p1 = Point {x: 5, y: 4};
+            let p2 = Point{x: "hello", y:'c'};
+            let p3 = p1.mixup(p2);
+            println!("p3.x = {}, p3.y = {}", p3.x, p3.y); // p3.x = 5, p3.y = c
+        
+        // 泛型代码的性能
+            // 使用泛型的代码和使用具体类型的代码运行速度是一样的
+            // 单态化（monomorphization）：
+                // 在编译时将泛型替换为具体类型的过程
+
+}
+
+fn trait_() {
+    // Trait 
+        // Trait 告诉 Rust 编译器：
+            // 某种类型具有哪些并且可以与其它类型共享的功能
+        // Trait: 抽象的定义共享行为
+        // Trait bounds (约束): 泛型类型参数指定为实现了特定行为的类型
+        // Trait 与 其它语言的接口(interface) 类似, 但有些区别
+
+    // 定义一个 Trait
+        // Trait 的定义: 把方法签名放在一起, 来定义实现某种目的所必须的一组行为.
+            // 关键字: trait
+            // 只有方法签名, 没有具体实现
+            // trait 可以有多个方法: 每个方法签名占一行, 以; 结尾
+            // 实现该trait 的类型 必须提供具体的方法实现
+
+            
 }
 
 mod test;
@@ -1621,11 +2174,22 @@ fn main() {
 
     // match_(); // 25 26 控制流运算符
 
-    package_crate_module(); // 27     package(包) crate(单元包) module(模块)
+    // package_crate_module(); // 27(package) 28(path) 29(path) 30(use) 31(use2)    package(包) crate(单元包) module(模块)
 
     // gather_vector(); // 8-1 8-2  33 34 常用的集合 -- 存储在 heap 中
 
     // string(); // 8-3  8-4  35 36
+
+    // hashmap(); // 8-5 8-6 37 38
+    
+    // panic_(); // 9-1   9-4 39 42
+    
+    // result(); // 9-2 9-3 40 41 Result 枚举
+
+    // generics(); // 10-1 10-2 提取函数以消除重复， 泛型 43 44
+
+    trait_(); // 10-3 45 trait
+
     // test::practise();
     
     // println!("Hello, world!");
