@@ -1,4 +1,4 @@
 坚持下去，每日更新
-d-20240321    basic(常规编程概念)
-d-20240325    ownership (所有权)
+basic        basic(常规编程概念)
+ownership    ownership (所有权)
 

@@ -1,4 +1,4 @@
-workspace = { members = ["d-20240321", "d-20240325"] }
+workspace = { members = ["basic", "ownership"] }
 [package]
 name = "hello_cargo"
 version = "0.1.0"
